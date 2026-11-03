@@ -12,10 +12,9 @@
 //! ## riscv64 ABI (for this exercise)
 //! - Callee-saved: `sp`, `ra`, `s0`–`s11`. The `ret` instruction is `jalr zero, 0(ra)`.
 //! - First and second arguments: `a0` (old context), `a1` (new context).
-
-use core::arch::naked_asm;
 #![cfg(target_arch = "riscv64")]
 
+use core::arch::naked_asm;
 /// Saved register state for one task (riscv64). Layout must match the offsets used in the asm below: for one task (riscv64). Layout must match the offsets used in the asm below:
 /// `sp` at 0, `ra` at 8, then `s0`–`s11` at 16, 24, … 104.
 #[repr(C)]
@@ -76,7 +75,7 @@ impl TaskContext {
 ///
 /// Must be `#[unsafe(naked)]` to prevent the compiler from generating a prologue/epilogue.
 #[unsafe(naked)]
-pub unsafe extern "C" fn switch_context(old: &mut TaskContext, new: &TaskContext) {
+pub unsafe extern "C" fn switch_context(_old: &mut TaskContext, _new: &TaskContext) {
     naked_asm!(
         "sd sp, 0(a0)",
         "sd ra, 8(a0)",
