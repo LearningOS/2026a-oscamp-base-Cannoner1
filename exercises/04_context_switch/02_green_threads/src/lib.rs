@@ -137,7 +137,20 @@ impl Scheduler {
     ///    `sp` must be 16-byte aligned (e.g. `(stack_top - 16) & !15` to leave headroom).
     /// 3. Push a `GreenThread` with this context, state `Ready`, and `entry` stored for the wrapper to call.
     pub fn spawn(&mut self, entry: extern "C" fn()) {
-        todo!("alloc stack, init ctx with ra=thread_wrapper and aligned sp, push GreenThread(Ready, entry)")
+        let stack = vec![0u8; STACK_SIZE];
+        let stack_top = stack.as_ptr() as usize + STACK_SIZE;
+
+        let mut ctx = TaskContext::default();
+        ctx.ra = thread_wrapper as usize as u64;          // 不是 entry！
+        ctx.sp = ((stack_top - 16) & !15) as u64;
+
+        self.threads.push(GreenThread {
+            ctx,
+            state: ThreadState::Ready,                    // 不是 Running
+            _stack: Some(stack),
+            entry: Some(entry),                           // 不是 entry
+        });
+
     }
 
     /// Run the scheduler until all threads (except the main one) are `Finished`.
@@ -146,12 +159,48 @@ impl Scheduler {
     /// 2. Loop: if all threads in `threads[1..]` are `Finished`, break; otherwise call `schedule_next()` (which may switch away and later return).
     /// 3. Clear `SCHEDULER` when done.
     pub fn run(&mut self) {
-        todo!("set SCHEDULER to self, loop until threads[1..] all Finished, call schedule_next, then clear SCHEDULER")
+        unsafe { SCHEDULER = self as *mut Scheduler; }
+        loop {
+            let alive = self.threads[1..].iter().any(|t| t.state != ThreadState::Finished);
+            if !alive { break; }
+            self.schedule_next();
+        }
+        unsafe { SCHEDULER = core::ptr::null_mut(); }
     }
 
     /// Find the next ready thread (starting from `current + 1` round-robin), mark current as `Ready` (if not `Finished`), mark next as `Running`, set `CURRENT_THREAD_ENTRY` if the next thread has an entry, then switch to it.
     fn schedule_next(&mut self) {
-        todo!("round-robin find next Ready, set current Ready (if not Finished), next Running, CURRENT_THREAD_ENTRY, then switch_context")
+        let n = self.threads.len();
+
+        if self.threads[self.current].state == ThreadState::Running {
+            self.threads[self.current].state = ThreadState::Ready;
+        }
+
+        let next = (1..=n)
+            .map(|i| (self.current + i) % n)
+            .find(|&i| self.threads[i].state == ThreadState::Ready);
+
+        let next = match next {
+            Some(i) => i,
+            None => {
+                // 没有 Ready 的：回到主线程；主线程自己也 Ready 就自己继续
+                if self.threads[0].state == ThreadState::Ready {
+                    0
+                } else {
+                    return;
+                }
+            }
+        };
+
+        self.threads[next].state = ThreadState::Running;
+
+        unsafe {
+            CURRENT_THREAD_ENTRY = self.threads[next].entry.take();
+            let old = self.threads.as_mut_ptr().add(self.current);
+            let new = self.threads.as_ptr().add(next);
+            self.current = next;
+            switch_context(&mut (*old).ctx, &(*new).ctx);
+        }
     }
 }
 
