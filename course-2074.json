@@ -2,8 +2,8 @@
   "schema": 1,
   "courseId": 2074,
   "repository": "LearningOS/2026a-oscamp-base-Cannoner1",
-  "commit": "ddf5e846e24704aad607cbe06a71e34c4a71a238",
-  "score": 94,
+  "commit": "98afcbc3ea6863814b7d9fb1b6be384abbdbb5aa",
+  "score": 100,
   "totalScore": 100,
   "exercises": [
     {
@@ -107,9 +107,9 @@
     {
       "name": "stack_coroutine",
       "max": 6,
-      "score": 0,
-      "status": "fail",
-      "exitCode": 101
+      "score": 6,
+      "status": "pass",
+      "exitCode": 0
     },
     {
       "name": "green_threads",
@@ -176,9 +176,9 @@
     }
   ],
   "student": "Cannoner1",
-  "runId": "41656262458",
+  "runId": "41657544780",
   "runAttempt": "1",
   "upload": {
-    "status": "accepted"
+    "status": "pending"
   }
 }
